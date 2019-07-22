@@ -1,6 +1,7 @@
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
 
 const db = require('./database/dbConfig.js');
 const Users = require('./users/users-model.js');
@@ -17,8 +18,12 @@ server.get('/', (req, res) => {
 
 server.post('/api/register', (req, res) => {
   let user = req.body;
-
-  Users.add(user)
+  // [password + salt] -> hashing function -> hashed string -> stored in db
+  // Sync because we want to have the hash now and not later
+  // pass -> hash -> re-hash will be done 2^12=4096 rounds
+  const hash = bcrypt.hashSync(user.password, 12);
+  user.password = hash;
+  Users.add({ user })
     .then(saved => {
       res.status(201).json(saved);
     })
